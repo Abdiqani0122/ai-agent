@@ -2,9 +2,16 @@ from agent.agent import Agent
 
 agent = Agent()
 
-text = input("Say something: ")
+print("Talk to the agent (type 'exit' to quit)\n")
 
-result = agent.act(text)
+while True:
+    text = input("You: ")
 
-print("\nAgent response:")
-print(result)
+    if text.lower() == "exit":
+        print("Goodbye")
+        break
+
+    result = agent.act(text)
+    print("\nAgent: ")
+    print(result)
+    print("-" * 40)
