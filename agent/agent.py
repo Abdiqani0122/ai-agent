@@ -1,5 +1,6 @@
 from .tools import summarize_text, answer_question
 from .countries import COUNTRIES
+from .local_llm import local_understand_user
 import json
 import os
 
@@ -36,37 +37,29 @@ class Agent:
         return None
 
     def decide(self, text: str):
-        text = text.lower()
+        data = local_understand_user(text)
 
-        country = self.extract_country(text)
+        intent = data.get("intent")
+        topic = data.get("topic")
+        country = data.get("country")
+
+        # Update memory first
+        if topic:
+            self.last_topic = topic
         if country:
             self.last_country = country
 
-        if "summarize" in text:
-            self.last_topic = "summarize"
-            return "summarize", "I saw the word 'summarize'.", "I plan to summarize the text."
+        # 1️⃣ Summarization still explicit
+        if intent == "summarize":
+            return "summarize", "AI detected summarization.", "I plan to summarize the text."
 
-        if "capital" in text:
-            self.last_topic = "capital"
-            return "answer", "I saw the word 'capital'.", "I plan to answer a geography question."
+        # 2️⃣ If we have enough context, ALWAYS try to answer
+        if self.last_topic and (intent == "answer" or topic or country or "what about" in text):
+            return "answer", f"Using topic '{self.last_topic}'.", "I plan to answer using tools."
 
-        if "population" in text:
-            self.last_topic = "population"
-            return "answer", "I saw the word 'population'.", "I plan to answer a population question."
-
-        if "currency" in text:
-            self.last_topic = "currency"
-            return "answer", "I saw the word 'currency'.", "I plan to answer a currency question."
-
-        if "continent" in text or "where is" in text:
-            self.last_topic = "continent"
-            return "answer", "I saw a location question.", "I plan to answer a location question."
-
-        if "what about" in text and self.last_topic:
-            return "answer", "I used context memory.", "I plan to reuse the previous topic."
-
-        return "unknown", "I did not understand the request.", "I do not have a plan."
-
+        # 3️⃣ Otherwise unknown
+        return "unknown", "AI was unsure.", "I do not have a plan."
+    
     def act(self, text: str):
         decision, reason, plan = self.decide(text)
 
