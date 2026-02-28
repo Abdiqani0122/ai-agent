@@ -12,7 +12,7 @@ def answer_question(text: str) -> str:
         return "The capital of Spain is Madrid."
     
     # Population questions
-    if "population of norwat" in text.lower():
+    if "population of norway" in text.lower():
         return "Norway has a population of 5.5 million people."
     if "population of sweden" in text:
         return "Sweden has a population of about 10.5 million people."
