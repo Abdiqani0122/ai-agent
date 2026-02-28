@@ -1,86 +1,78 @@
-from .tools import summarize_text, answer_question
-from .countries import COUNTRIES
-from .local_llm import local_understand_user
 import json
 import os
 
+from .local_llm import call_llm
+from .tools import summarize_text, web_search
+
+
 class Agent:
-    FOLLOW_UP_TOPICS = {"capital", "population", "currency", "continent"}
+    """
+    Internet-enabled agent:
+    - For normal questions: web_search -> LLM answer using results
+    - For summarization: summarize_text (or you can also use LLM)
+    - Stores lightweight memory (last query) in memory.json
+    """
 
     def __init__(self):
-        self.last_topic = None
-        self.last_country = None
+        self.last_query = None
         self.load_memory()
 
     def load_memory(self):
         if os.path.exists("memory.json"):
-            with open("memory.json", "r") as f:
-                data = json.load(f)
-                self.last_topic = data.get("last_topic")
-                self.last_country = data.get("last_country")
+            try:
+                with open("memory.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self.last_query = data.get("last_query")
+            except Exception:
+                # If memory.json is corrupted, ignore it
+                self.last_query = None
 
     def save_memory(self):
-        with open("memory.json", "w") as f:
-            json.dump(
-                {
-                    "last_topic": self.last_topic,
-                    "last_country": self.last_country
-                },
-                f,
-                indent=2
-            )
-
-    def extract_country(self, text: str):
-        for country in COUNTRIES.keys():
-            if country in text:
-                return country
-        return None
+        with open("memory.json", "w", encoding="utf-8") as f:
+            json.dump({"last_query": self.last_query}, f, indent=2)
 
     def decide(self, text: str):
-        data = local_understand_user(text)
+        t = text.strip().lower()
 
-        intent = data.get("intent")
-        topic = data.get("topic")
-        country = data.get("country")
+        # Very light routing; not "hard-coded Q&A", just action selection.
+        if t.startswith("summarize:") or t.startswith("summary:"):
+            return "summarize"
 
-        # Update memory first
-        if topic:
-            self.last_topic = topic
-        if country:
-            self.last_country = country
+        # Default behavior: answer anything with web+LLM
+        return "web_answer"
 
-        # 1️⃣ Summarization still explicit
-        if intent == "summarize":
-            return "summarize", "AI detected summarization.", "I plan to summarize the text."
+    def web_answer(self, question: str) -> str:
+        # 1) Search the internet
+        results = web_search(question, max_results=6)
 
-        # 2️⃣ If we have enough context, ALWAYS try to answer
-        if self.last_topic and (intent == "answer" or topic or country or "what about" in text):
-            return "answer", f"Using topic '{self.last_topic}'.", "I plan to answer using tools."
+        # 2) Ask the LLM to answer using the search results
+        prompt = f"""You are a helpful assistant.
+Use the search results to answer the question.
+If results are weak or conflicting, say so and give the best supported answer.
 
-        # 3️⃣ Otherwise unknown
-        return "unknown", "AI was unsure.", "I do not have a plan."
-    
+Question:
+{question}
+
+Search results (snippets):
+{results}
+
+Answer:"""
+
+        return call_llm(prompt).strip()
+
     def act(self, text: str):
-        decision, reason, plan = self.decide(text)
+        decision = self.decide(text)
 
-        if decision == "answer":
-            if "what about" in text and self.last_topic:
-                country = self.extract_country(text) or self.last_country
-
-                if country:
-                    self.last_country = country
-                    rebuilt = f"{self.last_topic} of {country}"
-                    result = answer_question(rebuilt)
-                else:
-                    result = "I don't know which country you mean."
-            else:
-                result = answer_question(text)
-
-        elif decision == "summarize":
-            result = summarize_text(text)
-
+        if decision == "summarize":
+            # Strip prefix if present
+            clean = text.split(":", 1)[1].strip() if ":" in text else text
+            result = summarize_text(clean)
         else:
-            result = "I don't know how to do that yet."
+            self.last_query = text.strip()
+            result = self.web_answer(text.strip())
 
         self.save_memory()
-        return f"{plan}\n{reason}\n\n{result}"
+        return result
+
+
+

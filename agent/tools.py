@@ -1,19 +1,37 @@
-from .countries import COUNTRIES
+from ddgs import DDGS
 
-def summarize_text(text: str) -> str:
-    return text[:150] + "..."
 
-def answer_question(text: str) -> str:
-    
-    for country, info in COUNTRIES.items():
-        if country in text:
-            if "capital" in text:
-                return f"The capital of {country.title()} is {info['capital']}."
-            if "currency" in text:
-                return f"The currency of {country.title()} is the {info['currency']}."
-            if "continent" in text:
-                return f"{country.title()} is in {info['continent']}."
-            if "population" in text:
-                return f"{country.title()} has a population of {info['population']}."
+def web_search(query: str, max_results: int = 6) -> str:
+    """
+    Search the internet and return text snippets.
+    No answering logic here — just raw information.
+    """
+    snippets = []
 
-    return "I don't know the answer yet."
+    try:
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=max_results):
+                body = r.get("body")
+                if body:
+                    snippets.append(body)
+    except Exception as e:
+        return f"Search error: {e}"
+
+    return "\n".join(snippets)
+
+
+def summarize_text(text: str, max_length: int = 200) -> str:
+    """
+    Lightweight summarizer for short texts.
+    (You can later replace this with an LLM.)
+    """
+    text = text.strip()
+
+    if len(text) <= max_length:
+        return text
+
+    return text[:max_length].rsplit(" ", 1)[0] + "..."
+
+
+
+
