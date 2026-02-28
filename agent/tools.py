@@ -4,7 +4,7 @@ def summarize_text(text: str) -> str:
     return text[:150] + "..."
 
 def answer_question(text: str) -> str:
-
+    
     for country, info in COUNTRIES.items():
         if country in text:
             if "capital" in text:
