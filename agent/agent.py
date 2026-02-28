@@ -1,17 +1,18 @@
 from .tools import summarize_text, answer_question
 
 class Agent:
-    def decide(self, task: str):
-        if "summarize" in task.lower():
+    def decide(self, text: str):
+        text = text.lower()
+
+        if "summarize" in text:
             return "summarize"
-        
-        if "answer" in task:
+        if "capital" in text:
             return "answer"
         
         return "unknown"
 
-    def act(self, task: str, text: str):
-        decision = self.decide(task)
+    def act(self, text: str):
+        decision = self.decide(text)
 
         if decision == "summarize":
             return summarize_text(text)

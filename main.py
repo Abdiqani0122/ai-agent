@@ -2,10 +2,9 @@ from agent.agent import Agent
 
 agent = Agent()
 
-task = input("What do you want me to do? ")
-text = input("Enter text: ")
+text = input("Say something: ")
 
-result = agent.act(task, text)
+result = agent.act(text)
 
 print("\nAgent response:")
 print(result)
