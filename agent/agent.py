@@ -1,14 +1,25 @@
 from .tools import summarize_text, answer_question
 
 class Agent:
-    # Question topics
     FOLLOW_UP_TOPICS = {"capital", "population", "currency", "continent"}
 
     def __init__(self):
-        self.last_topic = None # 🧠 memory
+        self.last_topic = None  # 🧠 NEW memory
+        self.last_country = None  # 🧠 NEW memory
+
+    def extract_country(self, text: str):
+        
+        for country in ["norway", "sweden", "spain"]:
+            if country in text:
+                return country
+        return None
 
     def decide(self, text: str):
         text = text.lower()
+
+        country = self.extract_country(text)
+        if country:
+            self.last_country = country
 
         if "summarize" in text:
             self.last_topic = "summarize"
@@ -31,7 +42,7 @@ class Agent:
             return "answer", "I saw a location question.", "I plan to answer a location question."
         
         if "what about" in text and self.last_topic:
-            return "answer", "I remembered the previous question.", "I plan to use my memory."
+            return "answer", "I used context memory.", "I plan to reuse the previous topic."
 
         return "unknown", "I did not understand the request.", "I do not have a plan."
 
@@ -40,14 +51,19 @@ class Agent:
 
         if decision == "answer":
             if "what about" in text and self.last_topic:
-                country = text.replace("what about", "").strip()
+                country = self.extract_country(text)
 
-                if self.last_topic in self.FOLLOW_UP_TOPICS:
+                if not country:
+                    country = self.last_country  # fallback to memory
+
+                if country:
+                    self.last_country = country
                     rebuilt = f"{self.last_topic} of {country}"
                     result = answer_question(rebuilt)
                 else:
-                    result = "I can't use my memory for that kind of request."
+                    result = "I don't know which country you mean."
             else:
+                # 👈 THIS WAS MISSING
                 result = answer_question(text)
 
         elif decision == "summarize":
