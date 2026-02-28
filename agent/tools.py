@@ -1,7 +1,7 @@
 from ddgs import DDGS
 
 
-def web_search(query: str, max_results: int = 6) -> str:
+def web_search(query: str, max_results: int = 3) -> str:
     """
     Search the internet and return text snippets.
     No answering logic here — just raw information.

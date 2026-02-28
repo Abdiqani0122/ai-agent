@@ -1,14 +1,14 @@
 from gpt4all import GPT4All
 
 model = GPT4All(
-    "mistral-7b-openorca.gguf2.Q4_0",
+    "Meta-Llama-3-8B-Instruct.Q4_0.gguf",
     allow_download=True
 )
 
 def call_llm(prompt: str) -> str:
     response = model.generate(
         prompt,
-        max_tokens=400,
-        temp=0.3
+        max_tokens=150,
+        temp=0.2
     )
     return response.strip()
