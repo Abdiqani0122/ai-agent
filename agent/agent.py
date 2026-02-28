@@ -63,7 +63,6 @@ class Agent:
                 else:
                     result = "I don't know which country you mean."
             else:
-                # 👈 THIS WAS MISSING
                 result = answer_question(text)
 
         elif decision == "summarize":
