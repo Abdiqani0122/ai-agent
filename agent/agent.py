@@ -1,4 +1,5 @@
 from .tools import summarize_text, answer_question
+from .countries import COUNTRIES
 
 class Agent:
     FOLLOW_UP_TOPICS = {"capital", "population", "currency", "continent"}
